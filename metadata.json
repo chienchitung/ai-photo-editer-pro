@@ -1,0 +1,5 @@
+{
+  "name": "AI Photo Editor Pro",
+  "description": "An advanced photo editor leveraging Gemini AI for powerful features like generative fill, magic eraser, artistic style transfer, and professional-grade adjustments.",
+  "requestFramePermissions": []
+}
