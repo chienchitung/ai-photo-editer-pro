@@ -1,14 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Layer, Tool } from '../types';
+import { Layer, Tool, AiMode } from '../types';
 
 interface CanvasProps {
   image: string | null;
   layers: Layer[];
   activeTool: Tool;
   onApplyCrop: (cropDataUrl: string) => void;
-  onGenerativeFill: (maskBase64: string, prompt: string, mimeType: string) => void;
+  onGenerativeAction: (maskBase64: string, mimeType: string) => void;
   brushSize: number;
-  aiPrompt: string;
+  aiMode: AiMode;
   imageRef: React.RefObject<HTMLImageElement>;
   containerRef: React.RefObject<HTMLDivElement>;
 }
@@ -28,7 +28,7 @@ const WelcomeScreen: React.FC = () => (
     </div>
 );
 
-export const Canvas: React.FC<CanvasProps> = ({ image, layers, activeTool, onApplyCrop, imageRef, containerRef, onGenerativeFill, brushSize, aiPrompt }) => {
+export const Canvas: React.FC<CanvasProps> = ({ image, layers, activeTool, onApplyCrop, imageRef, containerRef, onGenerativeAction, brushSize, aiMode }) => {
   const maskCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   
@@ -124,15 +124,14 @@ export const Canvas: React.FC<CanvasProps> = ({ image, layers, activeTool, onApp
     setCropEndPoint(null);
   };
   
-  const handleApplyFill = () => {
+  const handleApplyGenerativeAction = () => {
     const maskCanvas = maskCanvasRef.current;
-    if (!maskCanvas || !aiPrompt.trim()) {
-      alert("Please enter a prompt in the sidebar before applying the AI fill.");
+    if (!maskCanvas) {
       return;
     }
     const mimeType = 'image/png';
     const maskDataUrl = maskCanvas.toDataURL(mimeType);
-    onGenerativeFill(maskDataUrl, aiPrompt, mimeType);
+    onGenerativeAction(maskDataUrl, mimeType);
     clearMaskCanvas();
   };
   
@@ -191,7 +190,9 @@ export const Canvas: React.FC<CanvasProps> = ({ image, layers, activeTool, onApp
           )}
            {activeTool === 'ai_edit' && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 bg-gray-900/50 backdrop-blur-sm p-2 rounded-lg shadow-lg">
-                <button onClick={handleApplyFill} className="px-4 py-2 bg-indigo-600 rounded-md text-sm font-semibold hover:bg-indigo-500">Apply Fill</button>
+                <button onClick={handleApplyGenerativeAction} className="px-4 py-2 bg-indigo-600 rounded-md text-sm font-semibold hover:bg-indigo-500">
+                  {aiMode === 'eraser' ? 'Apply Eraser' : 'Apply Fill'}
+                </button>
                 <button onClick={clearMaskCanvas} className="px-4 py-2 bg-gray-600 rounded-md text-sm font-semibold hover:bg-gray-500">Clear Mask</button>
             </div>
           )}

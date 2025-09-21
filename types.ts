@@ -1,5 +1,6 @@
+export type Tool = 'filters' | 'transform' | 'layers' | 'ai_edit' | 'style_transfer' | 'crop' | 'enhance';
 
-export type Tool = 'filters' | 'transform' | 'layers' | 'ai_edit' | 'style_transfer' | 'crop';
+export type AiMode = 'fill' | 'eraser';
 
 export interface Adjustments {
   brightness: number;

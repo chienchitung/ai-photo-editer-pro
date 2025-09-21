@@ -1,12 +1,11 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { Header } from './components/Header';
 import { Loader } from './components/Loader';
-import { Tool, Adjustments, Layer, Preset, ArtisticStyle, Crop, Transform } from './types';
+import { Tool, Adjustments, Layer, Preset, ArtisticStyle, Crop, Transform, AiMode } from './types';
 import { INITIAL_ADJUSTMENTS, PRESET_FILTERS, ARTISTIC_STYLES } from './constants';
-import { applyArtisticStyle, performGenerativeFill } from './services/geminiService';
+import { applyArtisticStyle, performGenerativeFill, restoreOldPhoto, upscaleImage, fixLowLight } from './services/geminiService';
 import { fileToBase64, applyClientSideEdits } from './utils/imageUtils';
 
 const App: React.FC = () => {
@@ -29,6 +28,7 @@ const App: React.FC = () => {
   const [apiKey, setApiKey] = useState<string>('');
   const [brushSize, setBrushSize] = useState<number>(40);
   const [aiPrompt, setAiPrompt] = useState<string>('');
+  const [aiMode, setAiMode] = useState<AiMode>('fill');
 
 
   const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -141,10 +141,20 @@ const App: React.FC = () => {
     setTransform(prev => ({...prev, ...newTransform}));
   }
 
-  const handleGenerativeFill = async (maskBase64: string, prompt: string, mimeType: string) => {
+  const handleGenerativeAction = async (maskBase64: string, mimeType: string) => {
     if (!currentImage) return;
+    
+    const prompt = aiMode === 'eraser' 
+      ? 'Remove the content within the masked area and realistically fill it in based on the surrounding image context. The result should be seamless and high-quality.' 
+      : aiPrompt;
+      
+    if (aiMode === 'fill' && !prompt.trim()) {
+      setError('Please enter a prompt for Generative Fill.');
+      return;
+    }
+    
     setIsLoading(true);
-    setLoadingMessage('Applying AI magic...');
+    setLoadingMessage(aiMode === 'eraser' ? 'Applying Magic Eraser...' : 'Applying AI magic...');
     setError(null);
     try {
       const result = await performGenerativeFill(currentImage, maskBase64, prompt, mimeType, apiKey);
@@ -165,6 +175,54 @@ const App: React.FC = () => {
     setError(null);
     try {
       const result = await applyArtisticStyle(currentImage, style.prompt, apiKey);
+      setCurrentImage(result);
+      addToHistory(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRestorePhoto = async () => {
+    if (!currentImage) return;
+    setIsLoading(true);
+    setLoadingMessage('Restoring old photo...');
+    setError(null);
+    try {
+      const result = await restoreOldPhoto(currentImage, apiKey);
+      setCurrentImage(result);
+      addToHistory(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpscale = async () => {
+    if (!currentImage) return;
+    setIsLoading(true);
+    setLoadingMessage('Upscaling resolution...');
+    setError(null);
+    try {
+      const result = await upscaleImage(currentImage, apiKey);
+      setCurrentImage(result);
+      addToHistory(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLowLight = async () => {
+    if (!currentImage) return;
+    setIsLoading(true);
+    setLoadingMessage('Optimizing lighting...');
+    setError(null);
+    try {
+      const result = await fixLowLight(currentImage, apiKey);
       setCurrentImage(result);
       addToHistory(result);
     } catch (err) {
@@ -203,7 +261,6 @@ const App: React.FC = () => {
           onAddLayer={addLayer}
           onTransform={handleTransform}
           transform={transform}
-          // Fix: Corrected typo from ARTISTIC_STYYLES to ARTISTIC_STYLES.
           styles={ARTISTIC_STYLES}
           onStyleTransfer={handleStyleTransfer}
           onApplyCrop={handleApplyCrop}
@@ -221,6 +278,12 @@ const App: React.FC = () => {
           onAiPromptChange={setAiPrompt}
           brushSize={brushSize}
           onBrushSizeChange={setBrushSize}
+          aiMode={aiMode}
+          onAiModeChange={setAiMode}
+          // Enhancement props
+          onRestorePhoto={handleRestorePhoto}
+          onUpscale={handleUpscale}
+          onLowLight={handleLowLight}
         />
         <main className="flex-grow flex items-center justify-center p-4 lg:p-8 bg-gray-800/50 overflow-auto">
           {isLoading && <Loader message={loadingMessage} />}
@@ -232,9 +295,9 @@ const App: React.FC = () => {
             onApplyCrop={handleApplyCrop}
             imageRef={imageRef}
             containerRef={canvasContainerRef}
-            onGenerativeFill={handleGenerativeFill}
+            onGenerativeAction={handleGenerativeAction}
             brushSize={brushSize}
-            aiPrompt={aiPrompt}
+            aiMode={aiMode}
           />
         </main>
       </div>

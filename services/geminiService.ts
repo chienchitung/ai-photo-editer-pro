@@ -18,6 +18,32 @@ const dataUrlToPart = (dataUrl: string) => {
     };
 };
 
+const performSimpleImageEdit = async (baseImage: string, prompt: string, apiKey: string): Promise<string> => {
+    if (!apiKey) {
+        throw new Error("A Gemini API key is required for AI features. Please add it in the AI Edit panel.");
+    }
+    const ai = new GoogleGenAI({ apiKey });
+
+    const imagePart = dataUrlToPart(baseImage);
+    
+    const response: GenerateContentResponse = await ai.models.generateContent({
+        model: imageEditModel,
+        contents: { parts: [imagePart, { text: prompt }] },
+        config: {
+            responseModalities: [Modality.IMAGE, Modality.TEXT],
+        },
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+            const base64ImageBytes: string = part.inlineData.data;
+            return `data:${part.inlineData.mimeType};base64,${base64ImageBytes}`;
+        }
+    }
+    
+    throw new Error('AI did not return an image. Please try again.');
+};
+
 
 export const performGenerativeFill = async (
     baseImage: string, 
@@ -78,28 +104,21 @@ export const performGenerativeFill = async (
 };
 
 
-export const applyArtisticStyle = async (baseImage: string, prompt: string, apiKey: string): Promise<string> => {
-    if (!apiKey) {
-        throw new Error("A Gemini API key is required for Style Transfer. Please add it in the AI Edit panel.");
-    }
-    const ai = new GoogleGenAI({ apiKey });
+export const applyArtisticStyle = (baseImage: string, prompt: string, apiKey: string): Promise<string> => {
+    return performSimpleImageEdit(baseImage, prompt, apiKey);
+};
 
-    const imagePart = dataUrlToPart(baseImage);
-    
-    const response: GenerateContentResponse = await ai.models.generateContent({
-        model: imageEditModel,
-        contents: { parts: [imagePart, { text: prompt }] },
-        config: {
-            responseModalities: [Modality.IMAGE, Modality.TEXT],
-        },
-    });
+export const restoreOldPhoto = (baseImage: string, apiKey: string): Promise<string> => {
+    const prompt = "Restore this old, damaged photo. Remove scratches, dust, and spots. Correct color fading and enhance the overall clarity and color balance to make it look like a modern, high-quality photograph.";
+    return performSimpleImageEdit(baseImage, prompt, apiKey);
+};
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-        if (part.inlineData) {
-            const base64ImageBytes: string = part.inlineData.data;
-            return `data:${part.inlineData.mimeType};base64,${base64ImageBytes}`;
-        }
-    }
-    
-    throw new Error('AI did not return an image. Please try again.');
+export const upscaleImage = (baseImage: string, apiKey: string): Promise<string> => {
+    const prompt = "Recreate this image with significantly higher detail and clarity, as if it were taken with a professional high-resolution camera. Enhance textures, sharpness, and fine details without altering the composition or subject. Make the output image look like a high-resolution version of the input.";
+    return performSimpleImageEdit(baseImage, prompt, apiKey);
+};
+
+export const fixLowLight = (baseImage: string, apiKey: string): Promise<string> => {
+    const prompt = "This photo was taken in low light. Intelligently brighten the underexposed areas, reduce noise, and enhance colors. The result should look natural and well-lit, not artificially brightened or overexposed.";
+    return performSimpleImageEdit(baseImage, prompt, apiKey);
 };

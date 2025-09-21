@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Adjustments, Layer, Preset, Tool, ArtisticStyle, Transform } from '../types';
+import { Adjustments, Layer, Preset, Tool, ArtisticStyle, Transform, AiMode } from '../types';
 import { SidebarButton } from './SidebarButton';
 import { Slider } from './Slider';
 import { ICONS } from './Icons';
@@ -79,14 +79,16 @@ const StyleTransferPanel: React.FC<{ styles: ArtisticStyle[], onStyleTransfer: (
     </div>
 );
 
-const AiEditPanel: React.FC<{
+const GenerativeAiPanel: React.FC<{
     apiKey: string;
     onApiKeyChange: (key: string) => void;
     prompt: string;
     onPromptChange: (prompt: string) => void;
     brushSize: number;
     onBrushSizeChange: (size: number) => void;
-}> = ({ apiKey, onApiKeyChange, prompt, onPromptChange, brushSize, onBrushSizeChange }) => (
+    aiMode: AiMode;
+    onAiModeChange: (mode: AiMode) => void;
+}> = ({ apiKey, onApiKeyChange, prompt, onPromptChange, brushSize, onBrushSizeChange, aiMode, onAiModeChange }) => (
     <div className="flex flex-col gap-4">
         <div>
             <label className="text-sm font-medium text-gray-300">Gemini API Key</label>
@@ -99,18 +101,59 @@ const AiEditPanel: React.FC<{
             />
              <p className="text-xs text-gray-500 mt-1">Required for AI features. Your key is stored in your browser.</p>
         </div>
-         <div>
-            <label className="text-sm font-medium text-gray-300">Generative Fill Prompt</label>
-            <textarea 
-                value={prompt} 
-                onChange={e => onPromptChange(e.target.value)}
-                placeholder="e.g., add a cat wearing a hat"
-                rows={3}
-                className="mt-1 w-full bg-gray-800 border border-gray-600 rounded-md px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500"
-            />
+        
+        <div className="flex bg-gray-800 rounded-lg p-1">
+          <button onClick={() => onAiModeChange('fill')} className={`flex-1 py-1 text-sm rounded-md transition-colors ${aiMode === 'fill' ? 'bg-indigo-600 text-white font-semibold' : 'hover:bg-gray-700'}`}>
+            Generative Fill
+          </button>
+          <button onClick={() => onAiModeChange('eraser')} className={`flex-1 py-1 text-sm rounded-md transition-colors ${aiMode === 'eraser' ? 'bg-indigo-600 text-white font-semibold' : 'hover:bg-gray-700'}`}>
+            Magic Eraser
+          </button>
         </div>
-        <Slider label="Mask Brush Size" value={brushSize} onChange={onBrushSizeChange} min={5} max={100} />
-        <p className="text-sm text-gray-400">How to use: Draw a mask on the image where you want to edit, then click 'Apply Fill' on the canvas below the image.</p>
+
+        {aiMode === 'fill' && (
+          <div>
+              <label className="text-sm font-medium text-gray-300">Generative Fill Prompt</label>
+              <textarea 
+                  value={prompt} 
+                  onChange={e => onPromptChange(e.target.value)}
+                  placeholder="e.g., add a cat wearing a hat"
+                  rows={3}
+                  className="mt-1 w-full bg-gray-800 border border-gray-600 rounded-md px-2 py-1 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+              />
+          </div>
+        )}
+        
+        <Slider label="Brush Size" value={brushSize} onChange={onBrushSizeChange} min={5} max={100} />
+        
+        {aiMode === 'fill' && <p className="text-sm text-gray-400">How to use: Draw a mask on the image, enter a prompt, then click 'Apply Fill' on the canvas.</p>}
+        {aiMode === 'eraser' && <p className="text-sm text-gray-400">How to use: Draw a mask over the object you want to remove, then click 'Apply Eraser' on the canvas.</p>}
+    </div>
+);
+
+const EnhancePanel: React.FC<{
+    onRestore: () => void;
+    onUpscale: () => void;
+    onLowLight: () => void;
+}> = ({ onRestore, onUpscale, onLowLight }) => (
+    <div className="flex flex-col gap-3">
+        <h3 className="text-sm font-semibold mb-2 text-gray-300 uppercase tracking-wider">AI Smart Repair & Enhancement</h3>
+        <p className="text-xs text-gray-400 -mt-2 mb-2">One-click AI tools to fix common photo issues. Requires a Gemini API Key (set in Gen AI panel).</p>
+        
+        <button onClick={onRestore} className="w-full text-left p-3 bg-gray-700 rounded-md hover:bg-indigo-600 transition-colors">
+            <div className="font-semibold">Old Photo Restoration</div>
+            <div className="text-xs text-gray-300 mt-1">Remove scratches, fix colors, and enhance clarity in aged photos.</div>
+        </button>
+        
+        <button onClick={onUpscale} className="w-full text-left p-3 bg-gray-700 rounded-md hover:bg-indigo-600 transition-colors">
+            <div className="font-semibold">Super Resolution</div>
+            <div className="text-xs text-gray-300 mt-1">Increase image resolution and sharpness using AI.</div>
+        </button>
+
+        <button onClick={onLowLight} className="w-full text-left p-3 bg-gray-700 rounded-md hover:bg-indigo-600 transition-colors">
+            <div className="font-semibold">Low-Light Optimization</div>
+            <div className="text-xs text-gray-300 mt-1">Brighten dark photos and reduce noise naturally.</div>
+        </button>
     </div>
 );
 
@@ -143,6 +186,11 @@ interface SidebarProps {
   onAiPromptChange: (prompt: string) => void;
   brushSize: number;
   onBrushSizeChange: (size: number) => void;
+  aiMode: AiMode;
+  onAiModeChange: (mode: AiMode) => void;
+  onRestorePhoto: () => void;
+  onUpscale: () => void;
+  onLowLight: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = (props) => {
@@ -163,15 +211,18 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
             case 'transform': return <TransformPanel onTransform={props.onTransform} transform={props.transform} />;
             case 'layers': return <LayersPanel onAddLayer={props.onAddLayer} />;
             case 'style_transfer': return <StyleTransferPanel styles={props.styles} onStyleTransfer={props.onStyleTransfer} />;
-            case 'ai_edit': return <AiEditPanel 
+            case 'ai_edit': return <GenerativeAiPanel 
                                         apiKey={props.apiKey} 
                                         onApiKeyChange={props.onApiKeyChange}
                                         prompt={props.aiPrompt}
                                         onPromptChange={props.onAiPromptChange}
                                         brushSize={props.brushSize}
                                         onBrushSizeChange={props.onBrushSizeChange}
+                                        aiMode={props.aiMode}
+                                        onAiModeChange={props.onAiModeChange}
                                     />;
             case 'crop': return <p className="text-sm text-gray-400">Click and drag on the image to select an area to crop. Then click 'Apply Crop' below the image.</p>;
+            case 'enhance': return <EnhancePanel onRestore={props.onRestorePhoto} onUpscale={props.onUpscale} onLowLight={props.onLowLight} />;
             default: return <p>Select a tool</p>;
         }
     };
@@ -179,13 +230,14 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
     return (
         <aside className="w-96 bg-gray-900/80 backdrop-blur-sm border-r border-gray-700/50 flex flex-col z-10">
             <div className="flex items-center justify-center border-b border-gray-700/50 p-2">
-                 <div className="grid grid-cols-6 gap-1">
+                 <div className="grid grid-cols-4 gap-1">
                     <SidebarButton icon={<ICONS.Filter />} label="Filters" isActive={activeTool === 'filters'} onClick={() => setActiveTool('filters')} disabled={disabled}/>
                     <SidebarButton icon={<ICONS.Transform />} label="Transform" isActive={activeTool === 'transform'} onClick={() => setActiveTool('transform')} disabled={disabled}/>
-                    <SidebarButton icon={<ICONS.Layers />} label="Layers" isActive={activeTool === 'layers'} onClick={() => setActiveTool('layers')} disabled={disabled}/>
-                    <SidebarButton icon={<ICONS.Sparkles />} label="AI Edit" isActive={activeTool === 'ai_edit'} onClick={() => setActiveTool('ai_edit')} disabled={disabled}/>
-                    <SidebarButton icon={<ICONS.Palette />} label="Styles" isActive={activeTool === 'style_transfer'} onClick={() => setActiveTool('style_transfer')} disabled={disabled}/>
                     <SidebarButton icon={<ICONS.Crop />} label="Crop" isActive={activeTool === 'crop'} onClick={() => setActiveTool('crop')} disabled={disabled}/>
+                    <SidebarButton icon={<ICONS.Enhance />} label="Enhance" isActive={activeTool === 'enhance'} onClick={() => setActiveTool('enhance')} disabled={disabled}/>
+                    <SidebarButton icon={<ICONS.Sparkles />} label="Gen AI" isActive={activeTool === 'ai_edit'} onClick={() => setActiveTool('ai_edit')} disabled={disabled}/>
+                    <SidebarButton icon={<ICONS.Palette />} label="Styles" isActive={activeTool === 'style_transfer'} onClick={() => setActiveTool('style_transfer')} disabled={disabled}/>
+                    <SidebarButton icon={<ICONS.Layers />} label="Layers" isActive={activeTool === 'layers'} onClick={() => setActiveTool('layers')} disabled={disabled}/>
                 </div>
             </div>
 
