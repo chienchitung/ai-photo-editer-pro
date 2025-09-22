@@ -1,5 +1,13 @@
 
 import { Adjustments, Preset, ArtisticStyle } from './types';
+import { 
+    OIL_PAINTING_PREVIEW,
+    WATERCOLOR_PREVIEW,
+    CARTOON_PREVIEW,
+    PIXEL_ART_PREVIEW,
+    SCI_FI_PREVIEW,
+    FANTASY_PREVIEW
+} from './assets/images';
 
 export const INITIAL_ADJUSTMENTS: Adjustments = {
   brightness: 100,
@@ -19,12 +27,12 @@ export const PRESET_FILTERS: Preset[] = [
 ];
 
 export const ARTISTIC_STYLES: ArtisticStyle[] = [
-    { name: 'Oil Painting', prompt: 'Transform this photo into a detailed oil painting with visible brushstrokes.', previewUrl: 'https://picsum.photos/id/1040/100/100' },
-    { name: 'Watercolor', prompt: 'Convert this image into a soft and vibrant watercolor painting.', previewUrl: 'https://picsum.photos/id/1041/100/100' },
-    { name: 'Cartoon', prompt: 'Turn this photo into a bold, colorful cartoon style with thick outlines.', previewUrl: 'https://picsum.photos/id/1043/100/100' },
-    { name: 'Pixel Art', prompt: 'Convert this image into an 8-bit pixel art style.', previewUrl: 'https://picsum.photos/id/1044/100/100' },
-    { name: 'Sci-Fi', prompt: 'Reimagine this image with a futuristic, science-fiction aesthetic, including neon lights and holographic elements.', previewUrl: 'https://picsum.photos/id/1045/100/100' },
-    { name: 'Fantasy', prompt: 'Transform this image into a magical fantasy scene with enchanted lighting and mystical elements.', previewUrl: 'https://picsum.photos/id/1047/100/100' },
+    { name: 'Oil Painting', prompt: 'Transform this photo into a detailed oil painting with visible brushstrokes.', previewUrl: OIL_PAINTING_PREVIEW },
+    { name: 'Watercolor', prompt: 'Convert this image into a soft and vibrant watercolor painting.', previewUrl: WATERCOLOR_PREVIEW },
+    { name: 'Cartoon', prompt: 'Turn this photo into a bold, colorful cartoon style with thick outlines.', previewUrl: CARTOON_PREVIEW },
+    { name: 'Pixel Art', prompt: 'Convert this image into an 8-bit pixel art style.', previewUrl: PIXEL_ART_PREVIEW },
+    { name: 'Sci-Fi', prompt: 'Reimagine this image with a futuristic, science-fiction aesthetic, including neon lights and holographic elements.', previewUrl: SCI_FI_PREVIEW },
+    { name: 'Fantasy', prompt: 'Transform this image into a magical fantasy scene with enchanted lighting and mystical elements.', previewUrl: FANTASY_PREVIEW },
 ];
 
 export const LOADING_MESSAGES = [
